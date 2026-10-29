@@ -1,4 +1,4 @@
-# Supabase Configuration - pg_cron Testing for Branch Creation
+# Supabase Configuration - Testing config.toml parameter application
 project_id = "zddkkqdzwkxyvzakriab"
 
 [api]
@@ -13,8 +13,12 @@ port = 54322
 shadow_port = 54320
 major_version = 15
 
-# 🔥 CRITICAL TEST: pg_cron parameters (use true/false, not on/off)
+# Testing BOTH standard PostgreSQL and pg_cron parameters
 [db.settings]
+# Standard PostgreSQL parameters (should work if config.toml is applied)
+statement_timeout = 30000
+log_statement = "all"
+# pg_cron parameters (we suspect these won't work)
 cron.launch_active_jobs = false
 cron.max_running_jobs = 0
 cron.log_run = false
