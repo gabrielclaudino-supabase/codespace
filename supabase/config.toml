@@ -1,6 +1,4 @@
 # Supabase Configuration - pg_cron Testing for Branch Creation
-# Purpose: Test if pg_cron parameters in [db.settings] are applied during branch spinup
-
 project_id = "zddkkqdzwkxyvzakriab"
 
 [api]
@@ -15,15 +13,11 @@ port = 54322
 shadow_port = 54320
 major_version = 15
 
-# 🔥 CRITICAL TEST: Try to set pg_cron parameters at branch creation time
-# These are startup-only parameters that require PostgreSQL restart to take effect
-# If config.toml can apply them during branch initialization, they should appear as:
-# - cron.launch_active_jobs = false (instead of on)
-# - cron.max_running_jobs = 0 (instead of 32)
+# 🔥 CRITICAL TEST: pg_cron parameters (use true/false, not on/off)
 [db.settings]
 cron.launch_active_jobs = false
 cron.max_running_jobs = 0
-cron.log_run = off
+cron.log_run = false
 
 [db.pooler]
 enabled = false
