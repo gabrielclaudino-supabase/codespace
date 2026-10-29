@@ -2,6 +2,11 @@
 -- This tests the solution for SU-528491
 
 -- ============================================================
+-- STEP 0: Ensure pg_cron extension exists on this branch
+-- ============================================================
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+-- ============================================================
 -- PHASE 1: PRE-MIGRATION - Verify jobs exist and unschedule
 -- ============================================================
 
@@ -27,7 +32,6 @@ SELECT COUNT(*) as "jobs_after_unschedule" FROM cron.job;
 -- ============================================================
 
 -- This is where the customer's migration logic goes
--- For this test, we'll just mark a migration as executed
 CREATE TABLE IF NOT EXISTS migration_events (
   id SERIAL PRIMARY KEY,
   migration_name TEXT,
