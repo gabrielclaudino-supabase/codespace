@@ -41,3 +41,4 @@ Case: SU-528491 - pg_cron scheduler containment during migration replay
 2. Connect GitHub repo: `gabrielclaudino-supabase/codespace`
 3. Create a feature branch to trigger automatic branch creation
 4. Monitor logs and check applied settings
+# Test branch for pg_cron config.toml verification
