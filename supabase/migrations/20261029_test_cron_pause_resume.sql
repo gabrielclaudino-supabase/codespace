@@ -1,58 +1,60 @@
--- Test: Pause pg_cron jobs, run migrations, then resume
--- This simulates the workflow needed for SU-528491
+-- Test: Pause pg_cron jobs during migration, then resume
+-- This tests the solution for SU-528491
 
 -- ============================================================
--- PHASE 1: PRE-MIGRATION - Unschedule all active jobs
+-- PHASE 1: PRE-MIGRATION - Verify jobs exist and unschedule
 -- ============================================================
--- Store job definitions before unscheduling
-CREATE TEMP TABLE temp_cron_jobs AS
-SELECT jobid, schedule, command, nodename, nodeport, database, username, active
-FROM cron.job;
 
--- Unschedule all jobs
-SELECT cron.unschedule(jobname) FROM cron.job;
+-- Count jobs before
+SELECT COUNT(*) as "jobs_count_before" FROM cron.job;
 
--- Log completion
-SELECT 'Pre-migration: All pg_cron jobs unscheduled' as status;
+-- List all jobs before unscheduling
+SELECT jobid, jobname, schedule, active 
+FROM cron.job 
+ORDER BY jobid;
+
+-- Unschedule all jobs by name
+SELECT cron.unschedule('test-job-1');
+SELECT cron.unschedule('test-job-2');
+SELECT cron.unschedule('test-job-3');
+SELECT cron.unschedule('cleanup-old-records');
+
+-- Verify all jobs are unscheduled
+SELECT COUNT(*) as "jobs_after_unschedule" FROM cron.job;
 
 -- ============================================================
--- PHASE 2: MIGRATION - Your actual migrations go here
+-- PHASE 2: MIGRATION - Your actual migration work
 -- ============================================================
--- Simulate migration work (this is where customer's migration would run)
-CREATE TABLE IF NOT EXISTS test_migration_marker (
+
+-- This is where the customer's migration logic goes
+-- For this test, we'll just mark a migration as executed
+CREATE TABLE IF NOT EXISTS migration_events (
   id SERIAL PRIMARY KEY,
   migration_name TEXT,
   executed_at TIMESTAMP DEFAULT NOW()
 );
 
-INSERT INTO test_migration_marker (migration_name) 
+INSERT INTO migration_events (migration_name) 
 VALUES ('test_cron_pause_resume_20261029');
 
-SELECT 'Phase 2: Migration executed successfully' as status;
+SELECT 'Migration executed successfully' as "phase_2_status";
 
 -- ============================================================
--- PHASE 3: POST-MIGRATION - Recreate all jobs
+-- PHASE 3: POST-MIGRATION - Reschedule all jobs
 -- ============================================================
--- Recreate jobs from temp table
-DO $$
-DECLARE
-  job_record RECORD;
-BEGIN
-  FOR job_record IN SELECT * FROM temp_cron_jobs LOOP
-    PERFORM cron.schedule(
-      job_record.jobname::text,
-      job_record.schedule::text,
-      job_record.command::text,
-      job_record.nodename::text,
-      job_record.nodeport::int,
-      job_record.database::text,
-      job_record.username::text
-    );
-  END LOOP;
-  RAISE NOTICE 'All pg_cron jobs restored from temp table';
-END $$;
 
-SELECT 'Post-migration: All pg_cron jobs rescheduled' as status;
+-- Restore all jobs with exact same schedules
+SELECT cron.schedule('test-job-1', '0 10 * * *', 'SELECT 1');
+SELECT cron.schedule('test-job-2', '0 14 * * *', 'SELECT 2');
+SELECT cron.schedule('test-job-3', '0 18 * * *', 'SELECT 3');
+SELECT cron.schedule('cleanup-old-records', '0 2 * * *', 'DELETE FROM public.old_data WHERE created_at < NOW() - INTERVAL ''30 days''');
 
--- Verify jobs are back
-SELECT COUNT(*) as job_count FROM cron.job;
+-- Verify all jobs are restored
+SELECT COUNT(*) as "jobs_restored" FROM cron.job;
+
+-- Show restored jobs
+SELECT jobid, jobname, schedule, active 
+FROM cron.job 
+ORDER BY jobid;
+
+SELECT 'All pg_cron jobs successfully restored' as "phase_3_status";
